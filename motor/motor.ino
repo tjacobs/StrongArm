@@ -68,59 +68,81 @@ void loop() {
     sendCANCommand(MOTOR + 1, GET_SET_ID, GET_ID, 0, 0);
   }
 
-  // Get motor angle command
-  sendCANCommand(MOTOR + 2, GET_MOTOR_ANGLE, 0, 0, 0);
+  // Zero motors at current positions
+  if (false) {
+    sendCANCommand(MOTOR + 1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0);
+    delay(100);
+    sendCANCommand(MOTOR + 2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0);
+    delay(100);
+    sendCANCommand(MOTOR + 1, RESET_MOTOR, 0, 0, 0);
+    delay(100);
+    sendCANCommand(MOTOR + 2, RESET_MOTOR, 0, 0, 0);
+    delay(100);
+  }
 
   // Set action
-  static int state = 3;
-  static int angle = 10;
+  static int state = 1;
+  static int angle = 0;
+  static int direction = 1;
+  static int speed = 100;
   static int t = 0;
+  static int time = 0;
   t++;
-  if (t >= 15) {
-    // Flip
-    if      (angle == 10) angle = 20000;
-    else if (angle == 20000) angle = 10;
+  if (t >= 2000) {
+    // Reset
     t = 0;
-  }
 
-  // Do action
-  if (state == 1) {
-    // Set motor torque command
-    sendCANCommand(MOTOR + 1, SET_TORQUE, 50, 0, 0);
-    delay(100);
-    sendCANCommand(MOTOR + 2, SET_TORQUE, 50, 0, 0);
-  }
-  else if (state == 2) {
-    // Set motor torque command
-    sendCANCommand(MOTOR + 1, SET_TORQUE, -50, 0, 0);
-    delay(100);
-    sendCANCommand(MOTOR + 2, SET_TORQUE, -50, 0, 0);
-  }
-  else if (state == 3) {
-    // Set motor angle command
-    sendCANCommand(MOTOR + 2, SET_MOTOR_ANGLE, 0, 50, angle);
-  }
-  else if (state == 4) {
-    // Stop motor
-    sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
-    delay(100);
-    sendCANCommand(MOTOR + 2, SHUT_DOWN_MOTOR, 0, 0, 0);
+    // Shut down after a while
+    time++;
+    if (time > 10) state = 0;
+
+    // Flip
+    if      (direction ==  1) direction = -1;
+    else if (direction == -1) direction = 1;
+    angle = direction * 5000;
+
+    // Do action
+    if (state == 1) {
+      // Set output angle
+      sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle, speed, 0);
+    }
+    else if (state == 0) {
+      // Shut down motor
+      sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
+      delay(100);
+      sendCANCommand(MOTOR + 2, SHUT_DOWN_MOTOR, 0, 0, 0);
+      delay(100);
+    }
+    
+    // Get output angle
+    sendCANCommand(MOTOR + 2, GET_OUTPUT_ANGLE, 0, 0, 0);
+
+    // Wait and blink
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(50);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(50);
   }
 
   // Receive packets
   while( receiveCANPacket() ) { };
 
-  // Wait and blink
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(500);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(500);
+  // Wait
+  delay(1);
 }
 
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3) {
+  // Print
+  Serial.print("Sending packet to id 0x");
+  Serial.print(id, HEX);
+  Serial.print(": 0x");
+  Serial.print(command, HEX);
+  Serial.print(" ");
+
   // Pack packet
   uint8_t data1 = 0, data2 = 0, data3 = 0, data4 = 0, data5 = 0, data6 = 0, data7 = 0;
   if (command == COMMAND) {
+    Serial.print("Command: ");
     data1 = (uint8_t)(param1);
     data4 = (uint8_t)(param2);
     data5 = (uint8_t)(param2>>8);
@@ -128,27 +150,35 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
     data7 = (uint8_t)(param2>>24);
   }
   else if (command == GET_SET_ID) {
+    Serial.print("Get set ID: ");
     data2 = param1;
     data7 = param2;
   }
   else if (command == SET_TORQUE) {
+    Serial.print("Set torque: ");
     data4 = (uint8_t)(param1);
     data5 = (uint8_t)(param1>>8);
   }
   else if (command == SET_MOTOR_ANGLE) {
-    data1 = param1;               // spinDirection
+    Serial.print("Set motor angle: ");
+    data1 = param3;               // spinDirection
     data2 = (uint8_t)(param2);    // maxSpeed
-    data3 = (uint8_t)(param2>>8);
-    data4 = (uint8_t)(param3);    // angleControl
-    data5 = (uint8_t)(param3>>8);
+    data3 = (uint8_t)(param2 >> 8);
+    data4 = (uint8_t)(param1);    // angleControl
+    data5 = (uint8_t)(param1 >> 8);
+  }
+  else if (command == SET_OUTPUT_ANGLE) {
+    Serial.print("Set output angle: ");
+    data2 = (uint8_t)(param2);    // maxSpeed
+    data3 = (uint8_t)(param2 >> 8);
+    data4 = (uint8_t)(param1);    // angleControl
+    data5 = (uint8_t)(param1 >> 8);
+    data6 = (uint8_t)(param1 >> 16);
+    data7 = (uint8_t)(param1 >> 24);
   }
 
-  // Send packet
-  Serial.print("Sending CAN packet to 0x");
-  Serial.print(id, HEX);
-  Serial.print(" 0x");
-  Serial.print(command, HEX);
-  Serial.print(" 0x");
+  // Print
+  Serial.print("0x");
   Serial.print(data1, HEX);
   Serial.print(" 0x");
   Serial.print(data2, HEX);
@@ -162,6 +192,8 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   Serial.print(data6, HEX);
   Serial.print(" 0x");
   Serial.println(data7, HEX);
+
+  // Send packet
   mcp.beginPacket(id);
   mcp.write(command);
   mcp.write(data1);
@@ -179,24 +211,24 @@ bool receiveCANPacket() {
   int packetSize = mcp.parsePacket();
   if (packetSize) {
     // Received a packet
-    Serial.print("Received packet with id 0x");
+    Serial.print("Received packet from 0x");
     Serial.print(mcp.packetId(), HEX);
-    Serial.print(": ");
+    Serial.print(":");
 
     // Parse packet
     if (mcp.packetId() >= MOTOR_REPLY && mcp.packetId() <= MOTOR_REPLY + MAX_MOTORS) {
       uint8_t reply = (uint8_t)mcp.read();
       if (reply == GET_PID_PARAMS) {
-        Serial.print("Motor params:");
+        Serial.print(" Motor params:");
       }
       else if (reply == GET_SET_ID) {
-        Serial.print("ID:");
+        Serial.print(" ID:");
       }
       else if (reply == SET_TORQUE) {
-        Serial.print("Torque:");
+        Serial.print(" Torque:");
       }
       else if (reply == GET_MOTOR_ANGLE) {
-        Serial.print("Get angle: ");
+        Serial.print(" Get motor angle: ");
         mcp.read();
         mcp.read();
         mcp.read();
@@ -207,14 +239,26 @@ bool receiveCANPacket() {
         int angle = (data7 << 8) + data6;
         Serial.print(angle);
       }
+      else if (reply == GET_OUTPUT_ANGLE) {
+        Serial.print(" Get output angle: ");
+        mcp.read();
+        mcp.read();
+        mcp.read();
+        int data4 = mcp.read();
+        int data5 = mcp.read();
+        int data6 = mcp.read();
+        int data7 = mcp.read();
+        int angle = (data7 << 24) + (data6 << 16) + (data5 << 8) + data4;
+        Serial.print(angle);
+      }
       else if (reply == SET_MOTOR_ANGLE) {
-        Serial.print("Set angle:");
+        Serial.print(" Set angle:");
       }
       else if (reply == STOP_MOTOR) {
-        Serial.print("Stop motor:");
+        Serial.print(" Stop motor:");
       }
       else if (reply == SHUT_DOWN_MOTOR) {
-        Serial.print("Shut down motor:");
+        Serial.print(" Shut down motor:");
       }
     }
 
