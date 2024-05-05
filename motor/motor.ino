@@ -47,8 +47,6 @@ bool receiveCANPacket();
 void setup() {
   // Print
   Serial.begin(115200);
-  while(!Serial) delay(10);
-  Serial.println("CAN motor comms");
 
   // Set up blink LED
   pinMode(LED_BUILTIN, OUTPUT);
@@ -58,7 +56,6 @@ void setup() {
     Serial.println("Error initializing CAN chip.");
     while(1) delay(10);
   }
-  Serial.println("CAN chip found");
 }
 
 void loop() {
