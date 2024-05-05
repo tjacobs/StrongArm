@@ -82,29 +82,31 @@ void loop() {
 
   // Set action
   static int state = 1;
-  static int angle = 0;
-  static int direction = 1;
+  static int angle1 = 0;
+  static int angle2 = 0;
   static int speed = 100;
   static int t = 0;
   static int time = 0;
   t++;
-  if (t >= 2000) {
+  if (t >= 500) {
     // Reset
     t = 0;
+    if (state > 0) state++;
+    if (state > 4) state = 1;
 
-    // Shut down after a while
-    time++;
-    if (time > 10) state = 0;
-
-    // Flip
-    if      (direction ==  1) direction = -1;
-    else if (direction == -1) direction = 1;
-    angle = direction * 5000;
+    // State
+    if      (state == 1) angle1 = 2000;
+    else if (state == 2) angle2 = 2000;
+    else if (state == 3) angle1 = -2000;
+    else if (state == 4) angle2 = -2000;
 
     // Do action
-    if (state == 1) {
+    if (state >= 1) {
       // Set output angle
-      sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle, speed, 0);
+      sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
+      delay(100);
+      sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
+      delay(100);
     }
     else if (state == 0) {
       // Shut down motor
@@ -114,8 +116,16 @@ void loop() {
       delay(100);
     }
     
+    // Shut down after a while
+    time++;
+    if (time > 10) state = 0;
+    if (time > 20) {
+      state = 1;
+      time = 0;
+    }
+
     // Get output angle
-    sendCANCommand(MOTOR + 2, GET_OUTPUT_ANGLE, 0, 0, 0);
+    sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
 
     // Wait and blink
     digitalWrite(LED_BUILTIN, HIGH);
