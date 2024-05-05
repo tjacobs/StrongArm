@@ -44,6 +44,17 @@ Adafruit_MCP2515 mcp(PIN_CAN_CS);
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3);
 bool receiveCANPacket();
 
+// Serial packet
+int header = 0;
+int version = 0;
+int command = 0;
+int ax1 = 0;
+int ax2 = 0;
+int ay1 = 0;
+int ay2 = 0;
+int footer = 0;
+int timeout = 0;
+
 void setup() {
   // Print
   Serial.begin(115200);
@@ -77,59 +88,67 @@ void loop() {
     delay(100);
   }
 
-  // Set action
-  static int state = 1;
+  // State
+  static int state = -1;
   static int angle1 = 0;
   static int angle2 = 0;
   static int speed = 100;
-  static int t = 0;
-  static int time = 0;
-  t++;
-  if (t >= 500) {
-    // Reset
-    t = 0;
-    if (state > 0) state++;
-    if (state > 4) state = 1;
 
-    // State
-    if      (state == 1) angle1 = 2000;
-    else if (state == 2) angle2 = 2000;
-    else if (state == 3) angle1 = -2000;
-    else if (state == 4) angle2 = -2000;
+  // Read USB serial
+  if (Serial.available() > 0) {
+    header = Serial.read();
+    Serial.println(header, HEX);
+    if (header == 0xFF) {
+      // Read packet
+      version = Serial.read();
+      command = Serial.read();
+      ax1 = Serial.read();
+      ay1 = Serial.read();
+      ax2 = Serial.read();
+      ay2 = Serial.read();
+      footer = Serial.read();
 
-    // Do action
-    if (state >= 1) {
-      // Set output angle
-      sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
-      delay(100);
-      sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
-      delay(100);
-    }
-    else if (state == 0) {
-      // Shut down motor
-      sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
-      delay(100);
-      sendCANCommand(MOTOR + 2, SHUT_DOWN_MOTOR, 0, 0, 0);
-      delay(100);
-    }
-    
-    // Shut down after a while
-    time++;
-    if (time > 10) state = 0;
-    if (time > 20) {
+      // LED on, got data
+      digitalWrite(LED_BUILTIN, HIGH);
+      timeout = 0;
+
+      // Run motors
       state = 1;
-      time = 0;
     }
-
-    // Get output angle
-    sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
-
-    // Wait and blink
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(50);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(50);
   }
+
+  // LED off if no data
+  if (timeout > 100) {
+    // LED off
+    digitalWrite(LED_BUILTIN, LOW);
+
+    // Stop motors
+    state = 0;
+  }
+  timeout++;
+
+  // Set angles
+  angle1 = ax1 * 100;
+  angle2 = ay1 * 100;
+
+  // Do action
+  if (state >= 1) {
+    // Set output angle
+    sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
+    delay(100);
+    sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
+    delay(100);
+  }
+  else if (state == 0) {
+    // Shut down motor
+    sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
+    delay(100);
+    sendCANCommand(MOTOR + 2, SHUT_DOWN_MOTOR, 0, 0, 0);
+    delay(100);
+  }
+  
+  // Get output angle
+  //sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
 
   // Receive packets
   while( receiveCANPacket() ) { };
