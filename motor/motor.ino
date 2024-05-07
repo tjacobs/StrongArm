@@ -97,8 +97,9 @@ void loop() {
   // Read USB serial
   if (Serial.available() > 0) {
     header = Serial.read();
+    Serial.print("Read: 0x");
     Serial.println(header, HEX);
-    if (header == 0xFF) {
+    if (header == 0x61) {
       // Read packet
       version = Serial.read();
       command = Serial.read();
@@ -107,6 +108,12 @@ void loop() {
       ax2 = Serial.read();
       ay2 = Serial.read();
       footer = Serial.read();
+
+      Serial.print("Got ");
+      Serial.print(ax1);
+      Serial.print(", ");
+      Serial.print(ay1);
+      Serial.println("");
 
       // LED on, got data
       digitalWrite(LED_BUILTIN, HIGH);
@@ -118,12 +125,12 @@ void loop() {
   }
 
   // LED off if no data
-  if (timeout > 100) {
+  if (timeout > 2) {
     // LED off
     digitalWrite(LED_BUILTIN, LOW);
 
     // Stop motors
-    state = 0;
+    if (state > -1) state = 0;
   }
   timeout++;
 
