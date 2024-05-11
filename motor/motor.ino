@@ -14,6 +14,7 @@ Adafruit_MCP2515 mcp(PIN_CAN_CS);
 // Commands
 #define COMMAND 0x20
 #define GET_PID_PARAMS 0x30
+#define SET_ACCELERATION 0x43
 #define GET_OUTPUT_ANGLE_ENCODER 0x60
 #define GET_OUTPUT_ANGLE_ORIGINAL 0x61
 #define GET_OUTPUT_ANGLE_ZERO 0x62
@@ -55,6 +56,15 @@ int ay2 = 0;
 int footer = 0;
 int timeout = 0;
 
+// State
+int state = -1;
+int angle1 = 0;
+int angle2 = 0;
+int old_angle1 = 0;
+int old_angle2 = 0;
+int speed = 100;
+int angle_test = 0;
+
 void setup() {
   // Print
   Serial.begin(115200);
@@ -67,13 +77,17 @@ void setup() {
     Serial.println("Error initializing CAN chip.");
     while(1) delay(10);
   }
-}
 
-// State
-int state = -1;
-int angle1 = 0;
-int angle2 = 0;
-int speed = 100;
+  // Set acceleration
+  sendCANCommand(MOTOR + 2, SET_ACCELERATION, 1000, 0, 0);
+  delay(10);
+  sendCANCommand(MOTOR + 2, SET_ACCELERATION, 1000, 1, 0);
+  delay(10);
+  sendCANCommand(MOTOR + 1, SET_ACCELERATION, 1000, 0, 0);
+  delay(10);
+  sendCANCommand(MOTOR + 1, SET_ACCELERATION, 1000, 1, 0);
+  delay(10);
+}
 
 void loop() {
   // Get and set motor IDs
@@ -84,15 +98,14 @@ void loop() {
 
   // Zero motors at current positions
   if (false) {
-    sendCANCommand(MOTOR + 1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0);
-    delay(100);
-    sendCANCommand(MOTOR + 2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0);
-    delay(100);
-    sendCANCommand(MOTOR + 1, RESET_MOTOR, 0, 0, 0);
-    delay(100);
-    sendCANCommand(MOTOR + 2, RESET_MOTOR, 0, 0, 0);
-    delay(100);
+    sendCANCommand(MOTOR + 1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(1);
+    sendCANCommand(MOTOR + 2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(1);
+    sendCANCommand(MOTOR + 1, RESET_MOTOR, 0, 0, 0); delay(1);
+    sendCANCommand(MOTOR + 2, RESET_MOTOR, 0, 0, 0); delay(1);
   }
+
+  // Get output angle
+  if (false) sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
 
   // Read USB serial
   if (Serial.available() > 0) {
@@ -108,8 +121,7 @@ void loop() {
       ax2 = Serial.read();
       ay2 = Serial.read();
       footer = Serial.read();
-
-      Serial.print("Got ");
+      Serial.print("Got: ");
       Serial.print(ax1);
       Serial.print(", ");
       Serial.print(ay1);
@@ -117,20 +129,20 @@ void loop() {
 
       // LED on, got data
       digitalWrite(LED_BUILTIN, HIGH);
-      timeout = 0;
 
       // Run motors
+      timeout = 0;
       state = 1;
     }
   }
 
   // LED off if no data
-  if (timeout > 1000) {
+  if (timeout > 2000) {
     // LED off
     digitalWrite(LED_BUILTIN, LOW);
 
     // Stop motors
-    if (state > -1) state = 0;
+    if (state >= -1) state = 0;
   }
   timeout++;
 
@@ -138,26 +150,40 @@ void loop() {
   angle1 = ax1 * 100;
   angle2 = ay1 * 100;
 
+  // Test
+  if (timeout > 10000 && timeout < 10100) {
+    angle1 = (angle_test % 50) * 100;
+    angle2 = angle1;
+    angle_test++;
+    state = 1;
+    delay(100);
+  }
+  if (timeout > 10100) {
+    // Stop motors
+    if (state >= -1) state = 0;
+  }
+
   // Do action
   if (state == 1) {
     // Set output angle
-    sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
-    delay(1);
-    sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
+    if (angle2 != old_angle2)
+      sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
+    if (angle1 != old_angle1)
+      sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
     state = 2;
+    old_angle1 = angle1;
+    old_angle2 = angle2;
   }
   else if (state == 0) {
     // Shut down motor
-    sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
-    delay(1);
     sendCANCommand(MOTOR + 2, SHUT_DOWN_MOTOR, 0, 0, 0);
+    delay(1);
+    sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
+    state = -2;
   }
   
-  // Get output angle
-  //sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
-
   // Receive packets
-  while( receiveCANPacket() ) { };
+  //while( receiveCANPacket() ) { };
 
   // Wait
   delay(1);
@@ -177,19 +203,27 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
     Serial.print("Command: ");
     data1 = (uint8_t)(param1);
     data4 = (uint8_t)(param2);
-    data5 = (uint8_t)(param2>>8);
-    data6 = (uint8_t)(param2>>16);
-    data7 = (uint8_t)(param2>>24);
+    data5 = (uint8_t)(param2 >> 8);
+    data6 = (uint8_t)(param2 >> 16);
+    data7 = (uint8_t)(param2 >> 24);
   }
   else if (command == GET_SET_ID) {
     Serial.print("Get set ID: ");
     data2 = param1;
     data7 = param2;
   }
+  else if (command == SET_ACCELERATION) {
+    Serial.print("Set acceleration: ");
+    data1 = param2;               // 0 = posAcc, 1 = posDec, 2 = speedAcc, 3 = speedDec
+    data4 = (uint8_t)(param1);
+    data5 = (uint8_t)(param1 >> 8);
+    data6 = (uint8_t)(param1 >> 16);
+    data7 = (uint8_t)(param1 >> 24);
+  }
   else if (command == SET_TORQUE) {
     Serial.print("Set torque: ");
     data4 = (uint8_t)(param1);
-    data5 = (uint8_t)(param1>>8);
+    data5 = (uint8_t)(param1 >> 8);
   }
   else if (command == SET_MOTOR_ANGLE) {
     Serial.print("Set motor angle: ");
@@ -201,6 +235,7 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   }
   else if (command == SET_OUTPUT_ANGLE) {
     Serial.print("Set output angle: ");
+    Serial.println(param1);
     data2 = (uint8_t)(param2);    // maxSpeed
     data3 = (uint8_t)(param2 >> 8);
     data4 = (uint8_t)(param1);    // angleControl
@@ -208,22 +243,23 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
     data6 = (uint8_t)(param1 >> 16);
     data7 = (uint8_t)(param1 >> 24);
   }
-
-  // Print
-  Serial.print("0x");
-  Serial.print(data1, HEX);
-  Serial.print(" 0x");
-  Serial.print(data2, HEX);
-  Serial.print(" 0x");
-  Serial.print(data3, HEX);
-  Serial.print(" 0x");
-  Serial.print(data4, HEX);
-  Serial.print(" 0x");
-  Serial.print(data5, HEX);
-  Serial.print(" 0x");
-  Serial.print(data6, HEX);
-  Serial.print(" 0x");
-  Serial.println(data7, HEX);
+  else {
+    // Print
+    Serial.print("0x");
+    Serial.print(data1, HEX);
+    Serial.print(" 0x");
+    Serial.print(data2, HEX);
+    Serial.print(" 0x");
+    Serial.print(data3, HEX);
+    Serial.print(" 0x");
+    Serial.print(data4, HEX);
+    Serial.print(" 0x");
+    Serial.print(data5, HEX);
+    Serial.print(" 0x");
+    Serial.print(data6, HEX);
+    Serial.print(" 0x");
+    Serial.println(data7, HEX);
+  }
 
   // Send packet
   mcp.beginPacket(id);
