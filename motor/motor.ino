@@ -142,17 +142,15 @@ void loop() {
   if (state == 1) {
     // Set output angle
     sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
-    delay(100);
+    delay(1);
     sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
-    delay(100);
     state = 2;
   }
   else if (state == 0) {
     // Shut down motor
     sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
-    delay(100);
+    delay(1);
     sendCANCommand(MOTOR + 2, SHUT_DOWN_MOTOR, 0, 0, 0);
-    delay(100);
   }
   
   // Get output angle
