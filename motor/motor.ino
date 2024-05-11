@@ -69,6 +69,12 @@ void setup() {
   }
 }
 
+// State
+int state = -1;
+int angle1 = 0;
+int angle2 = 0;
+int speed = 100;
+
 void loop() {
   // Get and set motor IDs
   if (false) {
@@ -87,12 +93,6 @@ void loop() {
     sendCANCommand(MOTOR + 2, RESET_MOTOR, 0, 0, 0);
     delay(100);
   }
-
-  // State
-  static int state = -1;
-  static int angle1 = 0;
-  static int angle2 = 0;
-  static int speed = 100;
 
   // Read USB serial
   if (Serial.available() > 0) {
@@ -125,7 +125,7 @@ void loop() {
   }
 
   // LED off if no data
-  if (timeout > 2) {
+  if (timeout > 1000) {
     // LED off
     digitalWrite(LED_BUILTIN, LOW);
 
@@ -139,12 +139,13 @@ void loop() {
   angle2 = ay1 * 100;
 
   // Do action
-  if (state >= 1) {
+  if (state == 1) {
     // Set output angle
     sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
     delay(100);
     sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
     delay(100);
+    state = 2;
   }
   else if (state == 0) {
     // Shut down motor
@@ -292,6 +293,7 @@ bool receiveCANPacket() {
       }
       else if (reply == SHUT_DOWN_MOTOR) {
         Serial.print(" Shut down motor:");
+        state = -1;
       }
     }
 
