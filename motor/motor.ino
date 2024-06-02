@@ -70,6 +70,8 @@ int angle_test = 0;
 void setup() {
   // Print
   Serial.begin(115200);
+  Serial1.begin(115200);
+  Serial2.begin(115200);
 
   // Set up blink LED
   pinMode(LED_BUILTIN, OUTPUT);
@@ -81,13 +83,14 @@ void setup() {
   }
 
   // Set acceleration
-  sendCANCommand(MOTOR + 2, SET_ACCELERATION, 1000, 0, 0);
+  int acceleration = 1500;
+  sendCANCommand(MOTOR + 2, SET_ACCELERATION, acceleration, 0, 0);
   delay(10);
-  sendCANCommand(MOTOR + 2, SET_ACCELERATION, 1000, 1, 0);
+  sendCANCommand(MOTOR + 2, SET_ACCELERATION, acceleration, 1, 0);
   delay(10);
-  sendCANCommand(MOTOR + 1, SET_ACCELERATION, 1000, 0, 0);
+  sendCANCommand(MOTOR + 1, SET_ACCELERATION, acceleration, 0, 0);
   delay(10);
-  sendCANCommand(MOTOR + 1, SET_ACCELERATION, 1000, 1, 0);
+  sendCANCommand(MOTOR + 1, SET_ACCELERATION, acceleration, 1, 0);
   delay(10);
 }
 
@@ -108,6 +111,28 @@ void loop() {
 
   // Get output angle
   if (false) sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
+
+  // Send gripper command
+  static int a = 0;
+  a++;
+  if (a > 50) a = 0;
+  char data[8] = {0x61, 1, 1,  (char)a, (char)a, 20, 20,  2};
+  Serial1.print(data);
+  delay(100);
+  Serial.print("Sent: ");
+  Serial.println(a);
+
+  if (Serial1.available() > 0) {
+    header = Serial1.read();
+    Serial1.print("Read 1: 0x");
+    Serial1.println(header, HEX);
+  }
+
+  if (Serial2.available() > 0) {
+    header = Serial2.read();
+    Serial2.print("Read 2: 0x");
+    Serial2.println(header, HEX);
+  }
 
   // Read USB serial
   if (Serial.available() > 0) {
@@ -144,7 +169,7 @@ void loop() {
     digitalWrite(LED_BUILTIN, LOW);
 
     // Stop motors
-    if (state >= -1) state = 0;
+    //if (state >= -1) state = 0;
   }
   timeout++;
 
@@ -153,14 +178,14 @@ void loop() {
   angle2 = ay1 * 100;
 
   // Test
-  if (timeout > 10000 && timeout < 10100) {
+  if (false && timeout > 10000 && timeout < 10100) {
     angle1 = (angle_test % 50) * 100;
     angle2 = angle1;
     angle_test++;
     state = 1;
     delay(100);
   }
-  if (timeout > 10100) {
+  if (false && timeout > 10100) {
     // Stop motors
     if (state >= -1) state = 0;
   }
