@@ -112,28 +112,6 @@ void loop() {
   // Get output angle
   if (false) sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
 
-  // Send gripper command
-  static int a = 0;
-  a++;
-  if (a > 50) a = 0;
-  char data[8] = {0x61, 1, 1,  (char)a, (char)a, 20, 20,  2};
-  Serial1.print(data);
-  delay(100);
-  Serial.print("Sent: ");
-  Serial.println(a);
-
-  if (Serial1.available() > 0) {
-    header = Serial1.read();
-    Serial1.print("Read 1: 0x");
-    Serial1.println(header, HEX);
-  }
-
-  if (Serial2.available() > 0) {
-    header = Serial2.read();
-    Serial2.print("Read 2: 0x");
-    Serial2.println(header, HEX);
-  }
-
   // Read USB serial
   if (Serial.available() > 0) {
     header = Serial.read();
@@ -152,6 +130,10 @@ void loop() {
       Serial.print(ax1);
       Serial.print(", ");
       Serial.print(ay1);
+      Serial.print(", ");
+      Serial.print(ax2);
+      Serial.print(", ");
+      Serial.print(ay2);
       Serial.println("");
 
       // LED on, got data
@@ -211,6 +193,34 @@ void loop() {
   
   // Receive packets
   //while( receiveCANPacket() ) { };
+
+  // Set gripper command
+  int gripper1 = ax2;
+  int gripper2 = ay2;
+
+  // Test gripper
+  if (false) {
+    static float pos = 0;
+    static int direction = 1;
+    if (direction == 1) pos += 0.01;
+    else                pos -= 0.01;
+    if (pos > 50 || pos < -50) direction = -direction;
+    gripper1 = pos;
+    gripper2 = pos;
+  }
+
+  // Send gripper command
+  char data[8] = {0x61, 1, 1, (char)gripper1, (char)gripper2, 0, 0, 0};
+  Serial1.print(data);
+
+  // Read gripper
+  if (false) {
+    if (Serial1.available() > 0) {
+      header = Serial1.read();
+      Serial1.print("Read: 0x");
+      Serial1.println(header, HEX);
+    }
+  }
 
   // Wait
   delay(1);
