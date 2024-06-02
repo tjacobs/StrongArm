@@ -12,7 +12,7 @@
 Servo servo1;
 Servo servo2;
 int servo_stop_value = 92;
-int s1_desired = 500;
+int s1_desired = 700;
 int s2_desired = 500;
 int timeout = 0;
 
@@ -100,24 +100,24 @@ void loop() {
 
   // Test servos
   if (false) {
-    static float movement = 10;
+    static float movement = 30;
     static float position = 0;
     static int direction = 0;
     if (direction == 0) {
-      position += 0.005f;
+      position += 0.09f;
       if (position > movement) direction = 1;
     } else {
-      position -= 0.005f;
+      position -= 0.09f;
       if (position <= -movement) direction = 0;        
     }
-    ax1 = 50 + position;
-    ay1 = 45 + position;
+    ax1 = 20 + position;
+    ay1 = 50 + position;
     command = 1;
 
     // Set LED color
     int red = 0;
-    int green = max(0, -position / 10);
-    int blue = max(0, position / 10);
+    int green = max(0, -position / 2);
+    int blue = max(0, position / 2);
     pixel.setPixelColor(0, pixel.Color(red, green, blue)); pixel.show();
     timeout = 0;
   }
