@@ -1,6 +1,8 @@
 /*
  * CAN communication to MyActuator motors
- * Thomas Jacobs, May 2024
+ * Thomas Jacobs, June 2024
+ * Boards Manager URL: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+ * Boards Manager: Raspberry Pi Pico/RP2040
  * Board: Raspberry Pi Pico/RP2040 -> Adafruit Feather RP2040 CAN
  * Library: Adafruit MCP2515
  */
