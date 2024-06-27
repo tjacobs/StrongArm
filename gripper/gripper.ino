@@ -11,9 +11,13 @@
 #include <Servo.h>
 Servo servo1;
 Servo servo2;
+
+// Adjustments
 int servo_stop_value = 92;
 int s1_desired = 700;
 int s2_desired = 500;
+
+// State
 int timeout = 0;
 
 // Neopixel
