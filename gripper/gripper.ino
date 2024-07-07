@@ -67,19 +67,26 @@ void setup() {
 }
 
 void loop() {
+  // Output servo positions
+  Serial.print(s1_position);
+  Serial.print(", ");
+  Serial.print(s2_position);
+  Serial.println("");
+
   // Read serial
-  if (Serial1.available() > 0) {
-    header = Serial1.read();
-    Serial.println("Got data");
-    if (header == 0x61) {
+  Serial_ S = Serial;
+  if (S.available() > 0) {
+    header = S.read();
+    if (header == 'a') {
       // Read packet
-      version = Serial1.read();
-      command = Serial1.read();
-      ax1 = Serial1.read();
-      ay1 = Serial1.read();
-      ax2 = Serial1.read();
-      ay2 = Serial1.read();
-      footer = Serial1.read();
+      //Serial.println("Got data");
+      version = S.read();
+      command = S.read();
+      ax1 = S.read();
+      ay1 = S.read();
+      ax2 = S.read();
+      ay2 = S.read();
+      footer = S.read();
 
       // LED green on
       pixel.setPixelColor(0, pixel.Color(0, 10, 0)); pixel.show();
@@ -87,18 +94,13 @@ void loop() {
     }
   }
 
-  /*while (Serial1.available() > 0) {
-    header = Serial1.read();
-    Serial.print("0x");
-    Serial.print(header, HEX);
-    Serial.print(" ");
-  }
-  Serial.println("");*/
-
   // LED off if no data
   if (timeout > 100) {
       // LED off
       pixel.setPixelColor(0, pixel.Color(0, 0, 0)); pixel.show();
+      command = 0;
+      servo1.write(servo_stop_value + 0);
+      servo2.write(servo_stop_value + 0);
   }
   timeout++;
 
@@ -126,41 +128,43 @@ void loop() {
     timeout = 0;
   }
 
-  // Command: set servo positions
+  // Command: set servo positions via PWM feedback
   if (command == 1) {
     s1_desired = ax1 * 10;
     s2_desired = ay1 * 10;
 
     // Limit
-    if (s2_desired > 500) s2_desired = 500;
-    if (s2_desired < 300) s2_desired = 300;    
+    //if (s2_desired > 500) s2_desired = 500;
+    //if (s2_desired < 300) s2_desired = 300;    
   }
 
   // Move servos to desired positions with P D control from servo feedback position wire
-  float kp = 0.1f;
-  float kd = 0.1f;
-  static float s1_error_prev = 0;
-  static float s2_error_prev = 0;
-  float s1_error = s1_position - s1_desired;
-  float s1_velocity = kp * s1_error - kd * (s1_error - s1_error_prev);
-  float s2_error = s2_position - s2_desired;
-  float s2_velocity = kp * s2_error - kd * (s2_error - s2_error_prev);
-  s1_error_prev = s1_error;
-  s2_error_prev = s2_error;
-  servo1.write(servo_stop_value + s1_velocity);
-  servo2.write(servo_stop_value + s2_velocity);
+  if (command == 1) {
+    float kp = 0.1f;
+    float kd = 0.1f;
+    static float s1_error_prev = 0;
+    static float s2_error_prev = 0;
+    float s1_error = s1_position - s1_desired;
+    float s1_velocity = kp * s1_error - kd * (s1_error - s1_error_prev);
+    float s2_error = s2_position - s2_desired;
+    float s2_velocity = kp * s2_error - kd * (s2_error - s2_error_prev);
+    s1_error_prev = s1_error;
+    s2_error_prev = s2_error;
+    servo1.write(servo_stop_value + s1_velocity);
+    servo2.write(servo_stop_value + s2_velocity);
 
-  // Error
-  if (abs(s1_error) > 100 || abs(s2_error) > 100) {
-      pixel.setPixelColor(0, pixel.Color(10, 0, 0)); pixel.show();
-      timeout = 0;
-      String c = ", ";
-      Serial.println(s1_error + c + s1_position + c + s1_desired);      
-      Serial.println(s2_error + c + s2_position + c + s2_desired);      
+    // Error
+    if (abs(s1_error) > 100 || abs(s2_error) > 100) {
+        pixel.setPixelColor(0, pixel.Color(10, 0, 0)); pixel.show();
+        timeout = 0;
+        //String c = ", ";
+        //Serial.println(s1_error + c + s1_position + c + s1_desired);      
+        //Serial.println(s2_error + c + s2_position + c + s2_desired);      
+    }
   }
 
   // Wait
-  delay(1);
+  delay(10);
 }
 
 // Read PWM
