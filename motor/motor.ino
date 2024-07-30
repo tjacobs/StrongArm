@@ -43,6 +43,9 @@ Adafruit_MCP2515 mcp(PIN_CAN_CS);
 #define ALL_MOTORS 0x280
 #define MAX_MOTORS 32
 
+// X4-24 Bionic motor models
+#define ALL_MOTORS_BIONIC 0x7FF
+
 // Functions
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3);
 bool receiveCANPacket();
@@ -96,9 +99,13 @@ void setup() {
 
 void loop() {
   // Get and set motor IDs
-  if (false) {
-    sendCANCommand(MOTOR + 1, COMMAND, SET_CAN_FILTER, 0, 0);
-    sendCANCommand(MOTOR + 1, GET_SET_ID, GET_ID, 0, 0);
+  for(int i = 1; i < 32; i++) {
+    //sendCANCommand(MOTOR + 1, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
+    //sendCANCommand(0x300, GET_SET_ID, SET_ID, 4, 0); delay(10)
+    //sendCANCommand(0x300, GET_SET_ID, GET_ID, 0, 0); delay(10);
+    //sendCANCommand(MOTOR + i, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
+    //sendCANCommand(MOTOR + 1, RESET_MOTOR, 0, 0, 0); delay(10);
+    //sendCANCommand(MOTOR + 4, RESET_MOTOR, 0, 0, 0); delay(10);
   }
 
   // Zero motors at current positions
@@ -192,7 +199,7 @@ void loop() {
   }
   
   // Receive packets
-  //while( receiveCANPacket() ) { };
+  while( receiveCANPacket() ) { };
 
   // Set gripper command
   int gripper1 = ax2;
@@ -247,7 +254,10 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   else if (command == GET_SET_ID) {
     Serial.print("Get set ID: ");
     data2 = param1;
+    Serial.print(data2);
     data7 = param2;
+    Serial.print(" ");
+    Serial.print(data7);
   }
   else if (command == SET_ACCELERATION) {
     Serial.print("Set acceleration: ");
