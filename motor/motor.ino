@@ -8,6 +8,7 @@
  */
 
 #include <Adafruit_MCP2515.h>
+#include "motor.h"
 
 // CAN comms
 #define CAN_BAUDRATE (1000000)
@@ -46,8 +47,15 @@ Adafruit_MCP2515 mcp(PIN_CAN_CS);
 // X4-24 Bionic motor commands
 #define B_ALL_MOTORS 0x7FF
 #define B_GET_ID 0x82
-#define B_SET_OUTPUT_ANGLE 0x82
+#define B_SET_OUTPUT_ANGLE 0x01
+#define B_SET_OUTPUT_SPEED 0x02
+#define B_SET_OUTPUT_TORQUE 0x03
+#define B_SET_ACCELERATION 0x06
 
+#define B_SET_OUTPUT_FORCE 0x0
+#define B_SET_OUTPUT_ZERO_HERE 0x0
+#define B_SET_MOTOR_CURRENT 0x0
+#define B_SET_MOTOR_POWER 0x0
 
 // Functions
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3);
@@ -102,7 +110,7 @@ void setup() {
 
 void loop() {
   // Get and set motor IDs
-  for(int i = 1; i < 32; i++) {
+  for (int i = 1; i < 32; i++) {
     //sendCANCommand(MOTOR + 1, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
     //sendCANCommand(0x300, GET_SET_ID, SET_ID, 4, 0); delay(10)
     //sendCANCommand(0x300, GET_SET_ID, GET_ID, 0, 0); delay(10);
@@ -325,7 +333,7 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
 }
 
 // Send a command to X-24 bionic motors
-void sendCANCommand_b(int id, uint8_t command, int param1, int param2, int param3) {
+void sendCANCommand_b(int id, uint8_t command, float param1, int param2, int param3) {
   // Print
   Serial.print("Sending packet to id 0x");
   Serial.print(id, HEX);
@@ -334,22 +342,22 @@ void sendCANCommand_b(int id, uint8_t command, int param1, int param2, int param
   Serial.print(" ");
 
   // Pack packet
-  uint8_t packet[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-  int packet_len = 8;
+  int packet_len = MAX_BYTES;
+  uint8_t packet[packet_len];
   if (command == B_SET_OUTPUT_ANGLE) {
-    Serial.print("Set output angle: ");
-
-    // TODO bit packing
-    packet[0] = 1; // Servo Position Control Mode command, unit3 bits
-    packet[1] = param1; // Output position in degrees, float32 bits
-    packet[2] = param2; // Speed in RPM, divide by 10, uint15 bits
-    packet[3] = param3; // Current max, 0 to 4095 is 0 to 409.5A, uint12 bits
-    packet[4] = 1;      // Reply, uint2 bits
+    Serial.print("Set angle: ");
+    set_position_control(id, param1, param2, param3, 1, packet);
+    debug(packet, packet_len);
+  }
+  else if (command == B_SET_OUTPUT_SPEED) {
+    Serial.print("Set speed: ");
+    set_speed_control(id, param1, param2, 1, packet);
+    debug(packet, packet_len);
   }
 
   // Send packet
   mcp.beginPacket(id);
-  mcp.write(packet, packet_len);
+  mcp.write((uint8_t*)&packet, packet_len);
   mcp.endPacket();
 }
 
@@ -423,4 +431,16 @@ bool receiveCANPacket() {
   
   // No packet found
   return false;
+}
+
+// Also compile bionic motor CAN packing
+#include "motor.c"
+
+
+// Debug function
+void debug(uint8_t *command, int length) {
+    for (int i = 0; i < length; i++) {
+        Serial.print(command[i], HEX);
+    }
+    Serial.print("\n");
 }
