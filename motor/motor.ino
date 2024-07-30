@@ -46,16 +46,15 @@ Adafruit_MCP2515 mcp(PIN_CAN_CS);
 
 // X4-24 Bionic motor commands
 #define B_ALL_MOTORS 0x7FF
-#define B_GET_ID 0x82
+
+#define B_SET_MOTOR_ID 0x04
+#define B_GET_MOTOR_ID 0x82
 #define B_SET_OUTPUT_ANGLE 0x01
+#define B_GET_OUTPUT_ANGLE 0x07
 #define B_SET_OUTPUT_SPEED 0x02
+
 #define B_SET_OUTPUT_TORQUE 0x03
 #define B_SET_ACCELERATION 0x06
-
-#define B_SET_OUTPUT_FORCE 0x0
-#define B_SET_OUTPUT_ZERO_HERE 0x0
-#define B_SET_MOTOR_CURRENT 0x0
-#define B_SET_MOTOR_POWER 0x0
 
 // Functions
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3);
@@ -356,14 +355,29 @@ void sendCANCommand_b(int id, uint8_t command, float param1, int param2, int par
   // Pack packet
   int packet_len = MAX_BYTES;
   uint8_t packet[packet_len];
-  if (command == B_SET_OUTPUT_ANGLE) {
+  if (command == B_SET_MOTOR_ID) {
+    Serial.print("Set motor ID: ");
+    packet_len = set_motor_id(id, param1, packet);
+    debug(packet, packet_len);
+  }
+  else if (command == B_GET_MOTOR_ID) {
+    Serial.print("Get motor ID: ");
+    packet_len = get_motor_id(packet);
+    debug(packet, packet_len);
+  }
+  else if (command == B_SET_OUTPUT_ANGLE) {
     Serial.print("Set angle: ");
-    set_position_control(id, param1, param2, param3, 1, packet);
+    packet_len = set_position_control(param1, param2, param3, 1, packet);
+    debug(packet, packet_len);
+  }
+  else if (command == B_GET_OUTPUT_ANGLE) {
+    Serial.print("Get angle: ");
+    packet_len = get_motor_position(packet);
     debug(packet, packet_len);
   }
   else if (command == B_SET_OUTPUT_SPEED) {
     Serial.print("Set speed: ");
-    set_speed_control(id, param1, param2, 1, packet);
+    packet_len = set_speed_control(param1, param2, 1, packet);
     debug(packet, packet_len);
   }
 
