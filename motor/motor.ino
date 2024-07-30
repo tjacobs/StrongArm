@@ -43,8 +43,11 @@ Adafruit_MCP2515 mcp(PIN_CAN_CS);
 #define ALL_MOTORS 0x280
 #define MAX_MOTORS 32
 
-// X4-24 Bionic motor models
-#define ALL_MOTORS_BIONIC 0x7FF
+// X4-24 Bionic motor commands
+#define B_ALL_MOTORS 0x7FF
+#define B_GET_ID 0x82
+#define B_SET_OUTPUT_ANGLE 0x82
+
 
 // Functions
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3);
@@ -318,6 +321,35 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   mcp.write(data5);
   mcp.write(data6);
   mcp.write(data7);
+  mcp.endPacket();
+}
+
+// Send a command to X-24 bionic motors
+void sendCANCommand_b(int id, uint8_t command, int param1, int param2, int param3) {
+  // Print
+  Serial.print("Sending packet to id 0x");
+  Serial.print(id, HEX);
+  Serial.print(": 0x");
+  Serial.print(command, HEX);
+  Serial.print(" ");
+
+  // Pack packet
+  uint8_t packet[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  int packet_len = 8;
+  if (command == B_SET_OUTPUT_ANGLE) {
+    Serial.print("Set output angle: ");
+
+    // TODO bit packing
+    packet[0] = 1; // Servo Position Control Mode command, unit3 bits
+    packet[1] = param1; // Output position in degrees, float32 bits
+    packet[2] = param2; // Speed in RPM, divide by 10, uint15 bits
+    packet[3] = param3; // Current max, 0 to 4095 is 0 to 409.5A, uint12 bits
+    packet[4] = 1;      // Reply, uint2 bits
+  }
+
+  // Send packet
+  mcp.beginPacket(id);
+  mcp.write(packet, packet_len);
   mcp.endPacket();
 }
 
