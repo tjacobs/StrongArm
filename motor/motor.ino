@@ -112,11 +112,23 @@ void loop() {
   // Get and set motor IDs
   for (int i = 1; i < 32; i++) {
     //sendCANCommand(MOTOR + 1, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
-    //sendCANCommand(0x300, GET_SET_ID, SET_ID, 4, 0); delay(10)
+    //sendCANCommand(0x300, GET_SET_ID, SET_ID, 4, 0); delay(10);
     //sendCANCommand(0x300, GET_SET_ID, GET_ID, 0, 0); delay(10);
     //sendCANCommand(MOTOR + i, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
     //sendCANCommand(MOTOR + 1, RESET_MOTOR, 0, 0, 0); delay(10);
     //sendCANCommand(MOTOR + 4, RESET_MOTOR, 0, 0, 0); delay(10);
+  }
+
+  // Test bionic motors
+  if (true) {
+    // Set position
+    float angle_b = 20.0;
+    int speed_b = 10;
+    int current_b = 1;
+    sendCANCommand_b(1, B_SET_OUTPUT_ANGLE, angle_b, speed_b, current_b); delay(10);
+
+    // Set speed
+    //sendCANCommand_b(1, B_SET_OUTPUT_SPEED, angle_b, speed_b, 0); delay(10);
   }
 
   // Zero motors at current positions
