@@ -74,6 +74,7 @@ int ay1 = 0;
 int ay2 = 0;
 int footer = 0;
 int timeout = 0;
+int step = 0;
 
 // State
 int state = -1;
@@ -81,8 +82,9 @@ int angle1 = 0;
 int angle2 = 0;
 int old_angle1 = 0;
 int old_angle2 = 0;
-int speed = 100;
+int speed = 150;
 int angle_test = 0;
+int angle_direction = 0;
 
 void setup() {
   // Print
@@ -105,9 +107,15 @@ void setup() {
   sendCANCommand(motor2, SET_ACCELERATION, acceleration, 1, 0); delay(10);
   sendCANCommand(motor1, SET_ACCELERATION, acceleration, 0, 0); delay(10);
   sendCANCommand(motor1, SET_ACCELERATION, acceleration, 1, 0); delay(10);
-}
 
-void loop() {
+  // Zero motors
+  delay(1000);
+  sendCANCommand(motor2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
+  sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(1000);
+  sendCANCommand(motor1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
+  sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(1000);
+  Serial.println("Zeroed motors.");
+
   // Get and set motor IDs
   //for (int i = 1; i < 32; i++) {
     //sendCANCommand(motor1, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
@@ -117,17 +125,11 @@ void loop() {
     //sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(10);
     //sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(10);
   //}
+}
 
-  // Zero motors at current positions
-  if (false) {
-    sendCANCommand(motor1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
-    //sendCANCommand(motor2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
-    sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(5000);
-    //sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(5000);
-  }
-
+void loop() {
   // Get output angle
-  if (true) sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0);
+  if (false) sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0);
 
   // Test bionic motors
   if (false) {
@@ -148,24 +150,44 @@ void loop() {
   angle1 = ax1 * 200;
   angle2 = ay1 * 200;
 
-  // Test
-  if (false) { //} && timeout > 1000 && timeout < 11100) {
-    angle1 = (angle_test % 50) * 100;
-    angle2 = angle1;
-    angle_test++;
+  // Test movement
+  Serial.println(timeout);
+  if (timeout < 1000) {
+    // Triangle back and forth movement test
+    int max = 50 * 200;
+    if      ((timeout % 200) <  50) step = 0;
+    else if ((timeout % 200) < 100) step = 1;
+    else if ((timeout % 200) < 120) step = 2;
+    else if ((timeout % 200) < 200) step = 3;
+    if (step == 0) angle2 = max;
+    if (step == 1) angle1 = max;
+    if (step == 2) angle2 = 1;
+    if (step == 3) angle1 = 1;
+    //if (angle_direction)  angle_test -= 150;
+    //else                  angle_test += 150;
+    //if (angle_test < 0)   angle_direction = 0;
+    //if (angle_test > max) angle_direction = 1;
+    //angle1 = angle_direction * max;
+    //angle2 = angle_direction * max;
+    Serial.print(angle1);
+    Serial.print(", ");
+    Serial.println(angle2);
     state = 1;
-    delay(100);
   }
-  if (false && timeout > 11100) {
-    // Stop motors
-    if (state >= -1) state = 0;
+  else if (timeout < 1200) {
+    angle1 = 0;
+    angle2 = 0;
+    state = 1;
+  }
+  else {
+    state = 0;
   }
 
   // Do action
   if (state == 1) {
     // Set output angle
-    if (angle2 != old_angle2) sendCANCommand(motor2, SET_OUTPUT_ANGLE, angle2, speed, 0);
-    if (angle1 != old_angle1) sendCANCommand(motor1, SET_OUTPUT_ANGLE, angle1, speed, 0);
+    if (angle2 != old_angle2) sendCANCommand(motor2, SET_OUTPUT_ANGLE, angle2, speed, 0); delay(10);
+    if (angle1 != old_angle1) sendCANCommand(motor1, SET_OUTPUT_ANGLE, angle1, speed, 0); delay(10);
     state = 2;
     old_angle1 = angle1;
     old_angle2 = angle2;
@@ -184,7 +206,7 @@ void loop() {
   updateGripper();
 
   // Sleep
-  delay(1);
+  delay(20);
 }
 
 // Read commands from USB serial
