@@ -111,12 +111,23 @@ void loop() {
   // Get and set motor IDs
   //for (int i = 1; i < 32; i++) {
     //sendCANCommand(motor1, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
-    //sendCANCommand(0x300, GET_SET_ID, SET_ID, 4, 0); delay(10);
-    //sendCANCommand(0x300, GET_SET_ID, GET_ID, 0, 0); delay(10);
+    //sendCANCommand(ALL_MOTORS, GET_SET_ID, GET_ID, 0, 0); delay(1000);
+    //sendCANCommand(ALL_MOTORS, GET_SET_ID, SET_ID, 4, 0); delay(10);
     //sendCANCommand(MOTOR + i, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
     //sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(10);
     //sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(10);
   //}
+
+  // Zero motors at current positions
+  if (false) {
+    sendCANCommand(motor1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
+    //sendCANCommand(motor2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
+    sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(5000);
+    //sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(5000);
+  }
+
+  // Get output angle
+  if (true) sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0);
 
   // Test bionic motors
   if (false) {
@@ -130,33 +141,22 @@ void loop() {
     //sendCANCommand_b(1, B_SET_OUTPUT_SPEED, angle_b, speed_b, 0); delay(10);
   }
 
-  // Zero motors at current positions
-  if (false) {
-    sendCANCommand(motor1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
-    sendCANCommand(motor2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
-    sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(10);
-    sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(10);
-  }
-
-  // Get output angle
-  if (true) sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0);
-
   // Read serial
   readSerial();
 
   // Set angles from serial commands
-  angle1 = ax1 * 100;
-  angle2 = ay1 * 100;
+  angle1 = ax1 * 200;
+  angle2 = ay1 * 200;
 
   // Test
-  if (false && timeout > 10000 && timeout < 10100) {
+  if (false) { //} && timeout > 1000 && timeout < 11100) {
     angle1 = (angle_test % 50) * 100;
     angle2 = angle1;
     angle_test++;
     state = 1;
     delay(100);
   }
-  if (false && timeout > 10100) {
+  if (false && timeout > 11100) {
     // Stop motors
     if (state >= -1) state = 0;
   }
@@ -193,14 +193,14 @@ void readSerial() {
     header = Serial.read();
     Serial.print("Read: 0x");
     Serial.println(header, HEX);
-    if (header == 0x61) {
+    if (header == 'A') {
       // Read packet
       version = Serial.read();
       command = Serial.read();
-      ax1 = Serial.read();
-      ay1 = Serial.read();
-      ax2 = Serial.read();
-      ay2 = Serial.read();
+      ax1 = Serial.read() - 'A';
+      ay1 = Serial.read() - 'A';
+      ax2 = Serial.read() - 'A';
+      ay2 = Serial.read() - 'A';
       footer = Serial.read();
       Serial.print("Got: ");
       Serial.print(ax1);
@@ -227,23 +227,26 @@ void readSerial() {
     digitalWrite(LED_BUILTIN, LOW);
 
     // Stop motors
-    //if (state >= -1) state = 0;
+    if (state >= -1) state = 0;
   }
   timeout++;
 }
 
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3) {
   // Print
-  Serial.print("Sending packet to id 0x");
-  Serial.print(id, HEX);
-  Serial.print(": 0x");
-  Serial.print(command, HEX);
-  Serial.print(" ");
+  bool print = false;
+  if (print) {
+    Serial.print("Sending packet to id 0x");
+    Serial.print(id, HEX);
+    Serial.print(": 0x");
+    Serial.print(command, HEX);
+    Serial.print(" ");
+  }
 
   // Pack packet
   uint8_t data1 = 0, data2 = 0, data3 = 0, data4 = 0, data5 = 0, data6 = 0, data7 = 0;
   if (command == COMMAND) {
-    Serial.print("Command: ");
+    if (print) Serial.print("Command: ");
     data1 = (uint8_t)(param1);
     data4 = (uint8_t)(param2);
     data5 = (uint8_t)(param2 >> 8);
@@ -251,12 +254,14 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
     data7 = (uint8_t)(param2 >> 24);
   }
   else if (command == GET_SET_ID) {
-    Serial.print("Get set ID: ");
     data2 = param1;
-    Serial.print(data2);
     data7 = param2;
-    Serial.print(" ");
-    Serial.print(data7);
+    if (print) { 
+      Serial.print("Get set ID: ");
+      Serial.print(data2);
+      Serial.print(" ");
+      Serial.print(data7);
+    }
   }
   else if (command == SET_ACCELERATION) {
     Serial.print("Set acceleration: ");
@@ -291,20 +296,22 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   }
   else {
     // Print
-    Serial.print("0x");
-    Serial.print(data1, HEX);
-    Serial.print(" 0x");
-    Serial.print(data2, HEX);
-    Serial.print(" 0x");
-    Serial.print(data3, HEX);
-    Serial.print(" 0x");
-    Serial.print(data4, HEX);
-    Serial.print(" 0x");
-    Serial.print(data5, HEX);
-    Serial.print(" 0x");
-    Serial.print(data6, HEX);
-    Serial.print(" 0x");
-    Serial.println(data7, HEX);
+    if (print) {
+      Serial.print("0x");
+      Serial.print(data1, HEX);
+      Serial.print(" 0x");
+      Serial.print(data2, HEX);
+      Serial.print(" 0x");
+      Serial.print(data3, HEX);
+      Serial.print(" 0x");
+      Serial.print(data4, HEX);
+      Serial.print(" 0x");
+      Serial.print(data5, HEX);
+      Serial.print(" 0x");
+      Serial.print(data6, HEX);
+      Serial.print(" 0x");
+      Serial.println(data7, HEX);
+    }
   }
 
   // Send packet
@@ -416,7 +423,7 @@ bool receiveCANPacket() {
         Serial.print(" Stop motor:");
       }
       else if (reply == SHUT_DOWN_MOTOR) {
-        Serial.print(" Shut down motor:");
+        //Serial.print(" Shut down motor:");
         state = -1;
       }
     }
