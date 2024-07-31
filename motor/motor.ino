@@ -1,6 +1,6 @@
 /*
- * CAN communication to MyActuator motors
- * Thomas Jacobs, June 2024
+ * CAN communication to MyActuator motors, v3 and Bionic
+ * Thomas Jacobs, August 2024
  * Boards Manager URL: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
  * Boards Manager: Raspberry Pi Pico/RP2040
  * Board: Raspberry Pi Pico/RP2040 -> Adafruit Feather RP2040 CAN
@@ -10,11 +10,18 @@
 #include <Adafruit_MCP2515.h>
 #include "motor.h"
 
+// CAN IDs for v3 MyActuator motors
+#define MOTOR 0x140
+#define motor1 (MOTOR + 1)
+#define motor2 (MOTOR + 4)
+#define motor3 (MOTOR + 2)
+#define motor4 (MOTOR + 3)
+
 // CAN comms
 #define CAN_BAUDRATE (1000000)
 Adafruit_MCP2515 mcp(PIN_CAN_CS);
 
-// Commands
+// Commands for v3 MyActuator motors
 #define COMMAND 0x20
 #define GET_PID_PARAMS 0x30
 #define SET_ACCELERATION 0x43
@@ -33,26 +40,23 @@ Adafruit_MCP2515 mcp(PIN_CAN_CS);
 #define SET_TORQUE 0xA1
 #define GET_SET_ID 0x79
 
-// Params
+// Params for v3 MyActuator motors
 #define SET_ID 0x00
 #define GET_ID 0x01
 #define SET_CAN_FILTER 0x02
 
-// IDs
-#define MOTOR 0x140
+// IDs for v3 MyActuator motors
 #define MOTOR_REPLY 0x240
 #define ALL_MOTORS 0x280
 #define MAX_MOTORS 32
 
-// X4-24 Bionic motor commands
+// Commands for X4-24 Bionic motor commands
 #define B_ALL_MOTORS 0x7FF
-
 #define B_SET_MOTOR_ID 0x04
 #define B_GET_MOTOR_ID 0x82
 #define B_SET_OUTPUT_ANGLE 0x01
 #define B_GET_OUTPUT_ANGLE 0x07
 #define B_SET_OUTPUT_SPEED 0x02
-
 #define B_SET_OUTPUT_TORQUE 0x03
 #define B_SET_ACCELERATION 0x06
 
@@ -97,29 +101,25 @@ void setup() {
 
   // Set acceleration
   int acceleration = 1500;
-  sendCANCommand(MOTOR + 2, SET_ACCELERATION, acceleration, 0, 0);
-  delay(10);
-  sendCANCommand(MOTOR + 2, SET_ACCELERATION, acceleration, 1, 0);
-  delay(10);
-  sendCANCommand(MOTOR + 1, SET_ACCELERATION, acceleration, 0, 0);
-  delay(10);
-  sendCANCommand(MOTOR + 1, SET_ACCELERATION, acceleration, 1, 0);
-  delay(10);
+  sendCANCommand(motor2, SET_ACCELERATION, acceleration, 0, 0); delay(10);
+  sendCANCommand(motor2, SET_ACCELERATION, acceleration, 1, 0); delay(10);
+  sendCANCommand(motor1, SET_ACCELERATION, acceleration, 0, 0); delay(10);
+  sendCANCommand(motor1, SET_ACCELERATION, acceleration, 1, 0); delay(10);
 }
 
 void loop() {
   // Get and set motor IDs
-  for (int i = 1; i < 32; i++) {
-    //sendCANCommand(MOTOR + 1, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
+  //for (int i = 1; i < 32; i++) {
+    //sendCANCommand(motor1, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
     //sendCANCommand(0x300, GET_SET_ID, SET_ID, 4, 0); delay(10);
     //sendCANCommand(0x300, GET_SET_ID, GET_ID, 0, 0); delay(10);
     //sendCANCommand(MOTOR + i, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
-    //sendCANCommand(MOTOR + 1, RESET_MOTOR, 0, 0, 0); delay(10);
-    //sendCANCommand(MOTOR + 4, RESET_MOTOR, 0, 0, 0); delay(10);
-  }
+    //sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(10);
+    //sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(10);
+  //}
 
   // Test bionic motors
-  if (true) {
+  if (false) {
     // Set position
     float angle_b = 20.0;
     int speed_b = 10;
@@ -132,16 +132,63 @@ void loop() {
 
   // Zero motors at current positions
   if (false) {
-    sendCANCommand(MOTOR + 1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(1);
-    sendCANCommand(MOTOR + 2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(1);
-    sendCANCommand(MOTOR + 1, RESET_MOTOR, 0, 0, 0); delay(1);
-    sendCANCommand(MOTOR + 2, RESET_MOTOR, 0, 0, 0); delay(1);
+    sendCANCommand(motor1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
+    sendCANCommand(motor2, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
+    sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(10);
+    sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(10);
   }
 
   // Get output angle
-  if (false) sendCANCommand(MOTOR + 1, GET_OUTPUT_ANGLE, 0, 0, 0);
+  if (true) sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0);
 
-  // Read USB serial
+  // Read serial
+  readSerial();
+
+  // Set angles from serial commands
+  angle1 = ax1 * 100;
+  angle2 = ay1 * 100;
+
+  // Test
+  if (false && timeout > 10000 && timeout < 10100) {
+    angle1 = (angle_test % 50) * 100;
+    angle2 = angle1;
+    angle_test++;
+    state = 1;
+    delay(100);
+  }
+  if (false && timeout > 10100) {
+    // Stop motors
+    if (state >= -1) state = 0;
+  }
+
+  // Do action
+  if (state == 1) {
+    // Set output angle
+    if (angle2 != old_angle2) sendCANCommand(motor2, SET_OUTPUT_ANGLE, angle2, speed, 0);
+    if (angle1 != old_angle1) sendCANCommand(motor1, SET_OUTPUT_ANGLE, angle1, speed, 0);
+    state = 2;
+    old_angle1 = angle1;
+    old_angle2 = angle2;
+  }
+  else if (state == 0) {
+    // Shut down motors
+    sendCANCommand(motor2, SHUT_DOWN_MOTOR, 0, 0, 0); delay(10);
+    sendCANCommand(motor1, SHUT_DOWN_MOTOR, 0, 0, 0); delay(10);
+    state = -2;
+  }
+  
+  // Receive packets
+  while( receiveCANPacket() ) { };
+
+  // Update gripper
+  updateGripper();
+
+  // Sleep
+  delay(1);
+}
+
+// Read commands from USB serial
+void readSerial() {
   if (Serial.available() > 0) {
     header = Serial.read();
     Serial.print("Read: 0x");
@@ -183,76 +230,6 @@ void loop() {
     //if (state >= -1) state = 0;
   }
   timeout++;
-
-  // Set angles
-  angle1 = ax1 * 100;
-  angle2 = ay1 * 100;
-
-  // Test
-  if (false && timeout > 10000 && timeout < 10100) {
-    angle1 = (angle_test % 50) * 100;
-    angle2 = angle1;
-    angle_test++;
-    state = 1;
-    delay(100);
-  }
-  if (false && timeout > 10100) {
-    // Stop motors
-    if (state >= -1) state = 0;
-  }
-
-  // Do action
-  if (state == 1) {
-    // Set output angle
-    if (angle2 != old_angle2)
-      sendCANCommand(MOTOR + 2, SET_OUTPUT_ANGLE, angle2, speed, 0);
-    if (angle1 != old_angle1)
-      sendCANCommand(MOTOR + 1, SET_OUTPUT_ANGLE, angle1, speed, 0);
-    state = 2;
-    old_angle1 = angle1;
-    old_angle2 = angle2;
-  }
-  else if (state == 0) {
-    // Shut down motor
-    sendCANCommand(MOTOR + 2, SHUT_DOWN_MOTOR, 0, 0, 0);
-    delay(1);
-    sendCANCommand(MOTOR + 1, SHUT_DOWN_MOTOR, 0, 0, 0);
-    state = -2;
-  }
-  
-  // Receive packets
-  while( receiveCANPacket() ) { };
-
-  // Set gripper command
-  int gripper1 = ax2;
-  int gripper2 = ay2;
-
-  // Test gripper
-  if (false) {
-    static float pos = 0;
-    static int direction = 1;
-    if (direction == 1) pos += 0.01;
-    else                pos -= 0.01;
-    if (pos > 50 || pos < -50) direction = -direction;
-    gripper1 = pos;
-    gripper2 = pos;
-  }
-
-  // Send gripper command
-  char data[8] = {0x61, 1, 1, (char)gripper1, (char)gripper2, 0, 0, 0};
-  Serial1.print(data);
-
-  // Read gripper
-  if (false) {
-    if (Serial1.available() > 0) {
-      header = Serial1.read();
-      Serial1.print("Read: 0x");
-      Serial1.println(header, HEX);
-    }
-  }
-
-  // Wait
-  delay(1);
 }
 
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3) {
@@ -459,9 +436,39 @@ bool receiveCANPacket() {
   return false;
 }
 
+// Send serial commands out other serial port to gripper board
+void updateGripper() {
+    // Set gripper command
+  int gripper1 = ax2;
+  int gripper2 = ay2;
+
+  // Test gripper
+  if (false) {
+    static float pos = 0;
+    static int direction = 1;
+    if (direction == 1) pos += 0.01;
+    else                pos -= 0.01;
+    if (pos > 50 || pos < -50) direction = -direction;
+    gripper1 = pos;
+    gripper2 = pos;
+  }
+
+  // Send gripper command
+  char data[8] = {0x61, 1, 1, (char)gripper1, (char)gripper2, 0, 0, 0};
+  Serial1.print(data);
+
+  // Read gripper
+  if (false) {
+    if (Serial1.available() > 0) {
+      header = Serial1.read();
+      Serial1.print("Read: 0x");
+      Serial1.println(header, HEX);
+    }
+  }
+}
+
 // Also compile bionic motor CAN packing
 #include "motor.c"
-
 
 // Debug function
 void debug(uint8_t *command, int length) {
