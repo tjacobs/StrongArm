@@ -354,7 +354,7 @@ void sendCANCommand_b(int id, uint8_t command, float param1, int param2, int par
     packet_len = get_motor_id(packet);
   }
   else if (command == B_SET_OUTPUT_ANGLE) {
-    if (print) Serial.print("Set angle: ");
+    if (false) Serial.print("Set angle: ");
     packet_len = set_position_control(param1, param2, param3, 1, packet);
   }
   else if (command == B_GET_OUTPUT_ANGLE) {
@@ -367,7 +367,7 @@ void sendCANCommand_b(int id, uint8_t command, float param1, int param2, int par
   }
 
   // Print
-  if (print) {
+  if (false) {
     Serial.print("Command: ");
     for (int i = 0; i < packet_len; i++) {
         Serial.print(" 0x");
