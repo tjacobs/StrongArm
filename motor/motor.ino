@@ -139,7 +139,7 @@ void loop() {
   sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
 
   // Output joint positions
-  for (int i = 0; i < NUM_MOTORS; i++) { Serial.print(read_angles[i]); Serial.print(", "); }
+  for (int i = 0; i < NUM_MOTORS; i++) { Serial.print(read_angles[i]); if (i < NUM_MOTORS - 1) Serial.print(", "); }
   Serial.println("");
 
   // Do action
