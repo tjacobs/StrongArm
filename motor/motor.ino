@@ -133,8 +133,10 @@ void loop() {
     state = 0;
   }
 
-  // Read positions only
-  //state = 2;
+  // Get output angles
+  //sendCANCommand_b(1,  B_GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
+  sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
+  sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
 
   // Output joint positions
   for (int i = 0; i < NUM_MOTORS; i++) { Serial.print(read_angles[i]); Serial.print(", "); }
@@ -152,10 +154,6 @@ void loop() {
     old_angle2 = angle2;
     old_angle3 = angle3;
     state = 2;
-
-    // Get output angles
-    sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
-    sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
   }
   else if (state == 0) {
     // Shut down motors
@@ -375,7 +373,7 @@ void sendCANCommand_b(int id, uint8_t command, float param1, int param2, int par
   }
 
   // Print
-  if (false) {
+  if (print) {
     Serial.print("Command: ");
     for (int i = 0; i < packet_len; i++) {
         Serial.print(" 0x");
@@ -395,7 +393,7 @@ bool receiveCANPacket() {
   int packetSize = mcp.parsePacket();
   if (packetSize) {
     // Received a packet
-    if (false) {
+    if (print) {
       Serial.print("Received packet from 0x");
       Serial.print(mcp.packetId(), HEX);
       Serial.print(":");
@@ -426,8 +424,13 @@ bool receiveCANPacket() {
         if (print) Serial.print(angle);
       }
       else if (reply == GET_OUTPUT_ANGLE) {
-        if (print) Serial.print(" Get output angle: ");
         int id = mcp.packetId() - MOTOR_REPLY;
+        if (print) {
+          Serial.print(" Get output angle: ");
+          Serial.print(" id: ");
+          Serial.print(id);
+          Serial.print(", ");
+        }
         mcp.read();
         mcp.read();
         mcp.read();
@@ -437,6 +440,8 @@ bool receiveCANPacket() {
         int data7 = mcp.read();
         int angle = (data7 << 24) + (data6 << 16) + (data5 << 8) + data4;
         if (print) Serial.println(angle);
+
+        // Save to angles array
         if (id > 0 && id <= NUM_MOTORS + 1) read_angles[id - 1] = angle;
       }
       else if (reply == SET_MOTOR_ANGLE) {
@@ -454,21 +459,23 @@ bool receiveCANPacket() {
     else if (mcp.packetId() >= 1 && mcp.packetId() <= MAX_MOTORS) {
       uint8_t reply = (uint8_t)mcp.read();
       if (reply == 0xA0) {
-        if (print) Serial.print(" Angle: ");
-        int data1 = mcp.read();
-        int data2 = mcp.read();
-        int data3 = mcp.read();
-        int data4 = mcp.read();
-        int data5 = mcp.read();
-        int angle = ((data2-60) << 16) + (data3 << 8) + data4; // Actually a float32
+        if (print) Serial.print("Bionic angle: ");
+        uint8_t buffer[8];
+        mcp.read();
+        buffer[0] = mcp.read();
+        buffer[1] = mcp.read();
+        buffer[2] = mcp.read();
+        buffer[3] = mcp.read();
+        int angle = ((buffer[0] - 60) << 16) + (buffer[1] << 8) + buffer[2]; // Actually a float32
+        float* a = (float*)buffer; // Try this *a
         if (print) {
-          Serial.print(data2);
+          Serial.print(buffer[0]);
           Serial.print(", ");
-          Serial.print(data3);
+          Serial.print(buffer[1]);
           Serial.print(", ");
-          Serial.print(data4);
+          Serial.print(buffer[2]);
           Serial.print(" = ");
-          Serial.print(angle);
+          Serial.println(angle);
         }
       }
       else if (reply == 0x20) {
