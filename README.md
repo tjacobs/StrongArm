@@ -1,11 +1,17 @@
 # StrongArm
 
-A strong robot arm with two MyActuator motors.
+A strong robot arm with MyActuator motors.
+
+Built from 3D printed PLA and carbon fiber tubes.
+Driven from a RP2040 CAN feather microcontroller board.
+To be used for machine learning to learn tasks.
+
+Video here:
+[https://x.com/TomPJacobs/status/1818873472283808126]https://x.com/TomPJacobs/status/1818873472283808126
 
 [https://medium.com/@TomPJacobs/build-a-robot-9fc864318622](https://medium.com/@TomPJacobs/build-a-robot-9fc864318622)
 
 [https://medium.com/@TomPJacobs/build-a-robot-part-ii-dfd7fef49c1a](https://medium.com/@TomPJacobs/build-a-robot-part-ii-dfd7fef49c1a)
 
-Also, tip for removing the drive not ejected messages, run this, and restart your computer:
-
-```sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.DiskArbitration.diskarbitrationd.plist DADisableEjectNotification -bool YES && sudo pkill diskarbitrationd```
+Build:
+Open motor/motor.ino in Arduno IDE, select board and library, flash to feather board.
