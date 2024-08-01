@@ -1,8 +1,53 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
+// Max CAN packet size
 #define MAX_BYTES 8
+
+// Commands for v3 MyActuator motors
+#define COMMAND 0x20
+#define GET_PID_PARAMS 0x30
+#define SET_ACCELERATION 0x43
+#define GET_OUTPUT_ANGLE_ENCODER 0x60
+#define GET_OUTPUT_ANGLE_ORIGINAL 0x61
+#define GET_OUTPUT_ANGLE_ZERO 0x62
+#define SET_OUTPUT_ZERO_VALUE 0x63
+#define SET_OUTPUT_ZERO_CURRENT 0x64
+#define GET_OUTPUT_ANGLE 0x92
+#define SET_OUTPUT_ANGLE 0xA4
+#define GET_MOTOR_ANGLE 0x94
+#define SET_MOTOR_ANGLE 0xA6
+#define SHUT_DOWN_MOTOR 0x80
+#define STOP_MOTOR 0x81
+#define RESET_MOTOR 0x76
+#define SET_TORQUE 0xA1
+#define GET_SET_ID 0x79
+
+// Params for v3 MyActuator motors
+#define SET_ID 0x00
+#define GET_ID 0x01
+#define SET_CAN_FILTER 0x02
+
+// IDs for v3 MyActuator motors
+#define MOTOR_REPLY 0x240
+#define ALL_MOTORS 0x280
+#define MAX_MOTORS 32
+
+// Commands for X4-24 Bionic motor commands
+#define B_ALL_MOTORS 0x7FF
+#define B_SET_MOTOR_ID 0x04
+#define B_GET_MOTOR_ID 0x82
+#define B_SET_OUTPUT_ANGLE 0x01
+#define B_GET_OUTPUT_ANGLE 0x07
+#define B_SET_OUTPUT_SPEED 0x02
+#define B_SET_OUTPUT_TORQUE 0x03
+#define B_SET_ACCELERATION 0x06
+
+// Functions
+void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3);
+bool receiveCANPacket();
 
 // Function to set communication mode
 int set_communication_mode(int motor_id, int mode, uint8_t *result);
