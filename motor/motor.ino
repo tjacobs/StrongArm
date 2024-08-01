@@ -102,7 +102,7 @@ void loop() {
   }
 
   // Test movement
-  else if (timeout < 1000) {
+  else if (timeout < 400) {
     // Back and forth movement test
     int max = 50 * 150;
     if      ((timeout % 200) <  50) step = 0;
@@ -124,12 +124,12 @@ void loop() {
     if (false) { Serial.print(angle1); Serial.print(", "); Serial.print(angle2); Serial.print(", "); Serial.println(angle3); }
     state = 1;
   }
-  else if (timeout < 1200) {
+  else if (timeout < 410) {
     angle1 = 0;
     angle2 = 0;
     state = 1;
   }
-  else if (true) {
+  else if (timeout < 420) {
     state = 0;
   }
 
@@ -160,12 +160,6 @@ void loop() {
     sendCANCommand(motor2, SHUT_DOWN_MOTOR, 0, 0, 0); delay(10);
     sendCANCommand(motor1, SHUT_DOWN_MOTOR, 0, 0, 0); delay(10);
     state = -2;
-  }
-  else if (state == 2) {
-    // Get output angle
-    //sendCANCommand_b(1,  B_GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
-    sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
-    sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
   }
   // Bionic motors
   else if (state == 3) {
@@ -425,12 +419,6 @@ bool receiveCANPacket() {
       }
       else if (reply == GET_OUTPUT_ANGLE) {
         int id = mcp.packetId() - MOTOR_REPLY;
-        if (print) {
-          Serial.print(" Get output angle: ");
-          Serial.print(" id: ");
-          Serial.print(id);
-          Serial.print(", ");
-        }
         mcp.read();
         mcp.read();
         mcp.read();
@@ -439,7 +427,13 @@ bool receiveCANPacket() {
         int data6 = mcp.read();
         int data7 = mcp.read();
         int angle = (data7 << 24) + (data6 << 16) + (data5 << 8) + data4;
-        if (print) Serial.println(angle);
+        if (print) {
+          Serial.print(" Get output angle: ");
+          Serial.print(" id: ");
+          Serial.print(id);
+          Serial.print(", ");
+          Serial.println(angle);
+        }
 
         // Save to angles array
         if (id > 0 && id <= NUM_MOTORS + 1) read_angles[id - 1] = angle;
