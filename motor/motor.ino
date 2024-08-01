@@ -12,6 +12,7 @@
 
 // CAN IDs for v3 MyActuator motors
 #define MOTOR 0x140
+#define NUM_MOTORS 6
 #define motor1 (MOTOR + 1)
 #define motor2 (MOTOR + 4)
 #define motor3 (MOTOR + 2)
@@ -41,6 +42,7 @@ int angle3 = 0;
 int old_angle1 = 0;
 int old_angle2 = 0;
 int old_angle3 = 0;
+int read_angles[NUM_MOTORS] = {};
 int speed = 150;
 int angle_test = 0;
 int angle_direction = 0;
@@ -135,25 +137,25 @@ void loop() {
   //state = 2;
 
   // Output joint positions
-  Serial.print(angle1); Serial.print(", ");
-  Serial.print(angle2); Serial.print(", ");
-  Serial.print(angle3); Serial.print(", ");
-  Serial.print(angle1); Serial.print(", ");
-  Serial.print(angle2); Serial.print(", ");
-  Serial.print(angle3);
+  for (int i = 0; i < NUM_MOTORS; i++) { Serial.print(read_angles[i]); Serial.print(", "); }
   Serial.println("");
 
   // Do action
   if (state == 1) {
-    // Set output angle
-    if (angle2 != old_angle2) sendCANCommand(motor2, SET_OUTPUT_ANGLE, angle2, speed, 0); delay(10);
-    if (angle1 != old_angle1) sendCANCommand(motor1, SET_OUTPUT_ANGLE, angle1, speed, 0); delay(10);
+    // Set output angles
     int speed_b = 5;
     int current_b = 1;
-    sendCANCommand_b(1, B_SET_OUTPUT_ANGLE, angle3, speed_b, current_b); delay(10);
-    state = 2;
+    if (angle2 != old_angle2) sendCANCommand(motor2, SET_OUTPUT_ANGLE, angle2, speed, 0); delay(10);
+    if (angle1 != old_angle1) sendCANCommand(motor1, SET_OUTPUT_ANGLE, angle1, speed, 0); delay(10);
+    if (angle3 != old_angle3) sendCANCommand_b(1, B_SET_OUTPUT_ANGLE, angle3, speed_b, current_b); delay(10);
     old_angle1 = angle1;
     old_angle2 = angle2;
+    old_angle3 = angle3;
+    state = 2;
+
+    // Get output angles
+    sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
+    sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
   }
   else if (state == 0) {
     // Shut down motors
@@ -176,9 +178,6 @@ void loop() {
     int speed_b = 10;
     int current_b = 1;
     sendCANCommand_b(1, B_SET_OUTPUT_ANGLE, angle1, speed_b, current_b); delay(10);
-
-    // Set speed
-    //sendCANCommand_b(1, B_SET_OUTPUT_SPEED, speed_b, current_b, 0); delay(10);
   }
 
   // Receive packets
@@ -428,6 +427,7 @@ bool receiveCANPacket() {
       }
       else if (reply == GET_OUTPUT_ANGLE) {
         if (print) Serial.print(" Get output angle: ");
+        int id = mcp.packetId() - MOTOR_REPLY;
         mcp.read();
         mcp.read();
         mcp.read();
@@ -436,7 +436,8 @@ bool receiveCANPacket() {
         int data6 = mcp.read();
         int data7 = mcp.read();
         int angle = (data7 << 24) + (data6 << 16) + (data5 << 8) + data4;
-        if (print) Serial.print(angle);
+        if (print) Serial.println(angle);
+        if (id > 0 && id <= NUM_MOTORS + 1) read_angles[id - 1] = angle;
       }
       else if (reply == SET_MOTOR_ANGLE) {
         if (print) Serial.print(" Set angle:");
@@ -445,7 +446,7 @@ bool receiveCANPacket() {
         if (print) Serial.print(" Stop motor:");
       }
       else if (reply == SHUT_DOWN_MOTOR) {
-        //if (print) Serial.print(" Shut down motor:");
+        if (print) Serial.print(" Shut down motor:");
         state = -1;
       }
     }
@@ -459,7 +460,7 @@ bool receiveCANPacket() {
         int data3 = mcp.read();
         int data4 = mcp.read();
         int data5 = mcp.read();
-        int angle = ((data2-60) << 16) + (data3 << 8) + data4;
+        int angle = ((data2-60) << 16) + (data3 << 8) + data4; // Actually a float32
         if (print) {
           Serial.print(data2);
           Serial.print(", ");
