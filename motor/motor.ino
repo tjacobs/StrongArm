@@ -93,12 +93,13 @@ void loop() {
   // Read serial
   if (readSerial()) {
     // Set angles from serial commands
-    angle1 = ax1 * 200;
-    angle2 = ay1 * 200;
+    angle1 = ax1 * 100;
+    angle2 = ay1 * 100;
+    angle3 = ax2 * 10;
   }
 
   // Test movement
-  if (true) { //} && timeout < 1000) {
+  else if (timeout < 1000) {
     // Back and forth movement test
     int max = 50 * 150;
     if      ((timeout % 200) <  50) step = 0;
@@ -106,8 +107,8 @@ void loop() {
     else if ((timeout % 200) < 150) step = 2;
     else if ((timeout % 200) < 200) step = 3;
     if (step == 0) { angle2 = -max; angle3 =  1; }
-    if (step == 1) { angle1 =  max; angle3 = 10; }
-    if (step == 2) { angle2 = 1; }
+    if (step == 1) { angle1 =  max; }
+    if (step == 2) { angle2 = 1; angle3 = 60; }
     if (step == 3) { angle1 = 1; }
     //if (angle_direction)   angle_test -= 1;
     //else                   angle_test += 1;
@@ -120,12 +121,12 @@ void loop() {
     Serial.print(angle1); Serial.print(", "); Serial.print(angle2); Serial.print(", "); Serial.println(angle3);
     state = 1;
   }
-  else if (false && timeout < 1200) {
+  else if (timeout < 1200) {
     angle1 = 0;
     angle2 = 0;
     state = 1;
   }
-  else if (false) {
+  else if (true) {
     state = 0;
   }
 
@@ -137,7 +138,7 @@ void loop() {
     // Set output angle
     if (angle2 != old_angle2) sendCANCommand(motor2, SET_OUTPUT_ANGLE, angle2, speed, 0); delay(10);
     if (angle1 != old_angle1) sendCANCommand(motor1, SET_OUTPUT_ANGLE, angle1, speed, 0); delay(10);
-    int speed_b = 1;
+    int speed_b = 5;
     int current_b = 1;
     sendCANCommand_b(1, B_SET_OUTPUT_ANGLE, angle3, speed_b, current_b); delay(10);
     state = 2;
