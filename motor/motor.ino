@@ -44,6 +44,7 @@ int old_angle3 = 0;
 int speed = 150;
 int angle_test = 0;
 int angle_direction = 0;
+bool print = true;
 
 void setup() {
   // Print
@@ -76,7 +77,7 @@ void setup() {
     sendCANCommand(motor2, RESET_MOTOR, 0, 0, 0); delay(1000);
     sendCANCommand(motor1, SET_OUTPUT_ZERO_CURRENT, 0, 0, 0); delay(10);
     sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(1000);
-    //Serial.println("Zeroed motors.");
+    if (print) Serial.println("Zeroed motors.");
   }
 
   // Get and set motor IDs
@@ -118,7 +119,7 @@ void loop() {
     //angle2 = angle_test;
     //angle1 = angle_direction * max;
     //angle2 = angle_direction * max;
-    //Serial.print(angle1); Serial.print(", "); Serial.print(angle2); Serial.print(", "); Serial.println(angle3);
+    if (false) { Serial.print(angle1); Serial.print(", "); Serial.print(angle2); Serial.print(", "); Serial.println(angle3); }
     state = 1;
   }
   else if (timeout < 1200) {
@@ -185,8 +186,7 @@ void loop() {
 bool readSerial() {
   if (Serial.available() > 0) {
     header = Serial.read();
-    bool print = false;
-    if (print) {
+    if (true) {
       Serial.print("Read: 0x");
       Serial.println(header, HEX);
     }
@@ -199,7 +199,7 @@ bool readSerial() {
       ax2 = Serial.read() - 'A';
       ay2 = Serial.read() - 'A';
       footer = Serial.read();
-      if (print) {
+      if (true) {
         Serial.print("Got: ");
         Serial.print(ax1);
         Serial.print(", ");
@@ -237,8 +237,7 @@ bool readSerial() {
 
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3) {
   // Print
-  bool print = false;
-  if (print) {
+  if (false) {
     Serial.print("Sending packet to id 0x");
     Serial.print(id, HEX);
     Serial.print(": 0x");
@@ -259,7 +258,7 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   else if (command == GET_SET_ID) {
     data2 = param1;
     data7 = param2;
-    if (print) { 
+    if (true) { 
       Serial.print("Get set ID: ");
       Serial.print(data2);
       Serial.print(" ");
@@ -301,7 +300,7 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   }
   else {
     // Print
-    if (print) {
+    if (true) {
       Serial.print("0x");
       Serial.print(data1, HEX);
       Serial.print(" 0x");
@@ -335,8 +334,7 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
 // Send a command to X-24 bionic motors
 void sendCANCommand_b(int id, uint8_t command, float param1, int param2, int param3) {
   // Print
-  bool print = false;
-  if (print) {
+  if (false) {
     Serial.print("Sending packet to id 0x");
     Serial.print(id, HEX);
     Serial.print(": 0x");
@@ -389,7 +387,6 @@ bool receiveCANPacket() {
   int packetSize = mcp.parsePacket();
   if (packetSize) {
     // Received a packet
-    bool print = false;
     if (print) {
       Serial.print("Received packet from 0x");
       Serial.print(mcp.packetId(), HEX);
