@@ -135,8 +135,8 @@ void loop() {
 
   // Get output angles
   //sendCANCommand_b(1,  B_GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
-  sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
   sendCANCommand(motor1, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
+  sendCANCommand(motor2, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
 
   // Output joint positions
   for (int i = 0; i < NUM_MOTORS; i++) { Serial.print(read_angles[i]); if (i < NUM_MOTORS - 1) Serial.print(", "); }
@@ -149,10 +149,10 @@ void loop() {
     int current_b = 1;
     if (angle2 != old_angle2) sendCANCommand(motor2, SET_OUTPUT_ANGLE, angle2, speed, 0); delay(10);
     if (angle1 != old_angle1) sendCANCommand(motor1, SET_OUTPUT_ANGLE, angle1, speed, 0); delay(10);
-    if (angle3 != old_angle3) sendCANCommand_b(1, B_SET_OUTPUT_ANGLE, angle3, speed_b, current_b); delay(10);
+    //if (angle3 != old_angle3) sendCANCommand_b(1, B_SET_OUTPUT_ANGLE, angle3, speed_b, current_b); delay(10);
     old_angle1 = angle1;
     old_angle2 = angle2;
-    old_angle3 = angle3;
+    //old_angle3 = angle3;
     state = 2;
   }
   else if (state == 0) {
@@ -225,9 +225,6 @@ bool readSerial() {
   if (timeout > 2000) {
     // LED off
     digitalWrite(LED_BUILTIN, LOW);
-
-    // Stop motors
-    if (state >= -1) state = 0;
   }
   timeout++;
 
@@ -237,7 +234,7 @@ bool readSerial() {
 
 void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3) {
   // Print
-  if (false) {
+  if (print) {
     Serial.print("Sending packet to id 0x");
     Serial.print(id, HEX);
     Serial.print(": 0x");
