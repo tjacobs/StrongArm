@@ -44,7 +44,7 @@ int old_angle3 = 0;
 int speed = 150;
 int angle_test = 0;
 int angle_direction = 0;
-bool print = true;
+bool print = false;
 
 void setup() {
   // Print
@@ -134,6 +134,15 @@ void loop() {
   // Read positions only
   //state = 2;
 
+  // Output joint positions
+  Serial.print(angle1); Serial.print(", ");
+  Serial.print(angle2); Serial.print(", ");
+  Serial.print(angle3); Serial.print(", ");
+  Serial.print(angle1); Serial.print(", ");
+  Serial.print(angle2); Serial.print(", ");
+  Serial.print(angle3);
+  Serial.println("");
+
   // Do action
   if (state == 1) {
     // Set output angle
@@ -186,7 +195,7 @@ void loop() {
 bool readSerial() {
   if (Serial.available() > 0) {
     header = Serial.read();
-    if (true) {
+    if (print) {
       Serial.print("Read: 0x");
       Serial.println(header, HEX);
     }
@@ -199,7 +208,7 @@ bool readSerial() {
       ax2 = Serial.read() - 'A';
       ay2 = Serial.read() - 'A';
       footer = Serial.read();
-      if (true) {
+      if (print) {
         Serial.print("Got: ");
         Serial.print(ax1);
         Serial.print(", ");
@@ -258,7 +267,7 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   else if (command == GET_SET_ID) {
     data2 = param1;
     data7 = param2;
-    if (true) { 
+    if (print) { 
       Serial.print("Get set ID: ");
       Serial.print(data2);
       Serial.print(" ");
@@ -300,7 +309,7 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   }
   else {
     // Print
-    if (true) {
+    if (print) {
       Serial.print("0x");
       Serial.print(data1, HEX);
       Serial.print(" 0x");
@@ -387,7 +396,7 @@ bool receiveCANPacket() {
   int packetSize = mcp.parsePacket();
   if (packetSize) {
     // Received a packet
-    if (print) {
+    if (false) {
       Serial.print("Received packet from 0x");
       Serial.print(mcp.packetId(), HEX);
       Serial.print(":");
@@ -462,7 +471,7 @@ bool receiveCANPacket() {
         }
       }
       else if (reply == 0x20) {
-        if (print) Serial.print(" Data: ");
+        if (false) Serial.print(" Data: ");
       }
       else if (true) {
         if (print) {
@@ -475,10 +484,9 @@ bool receiveCANPacket() {
 
     // Print hex bytes
     while (mcp.available()) {
-      if (print) {
-        Serial.print(" 0x");
-        Serial.print((uint8_t)mcp.read(), HEX);
-      }
+      if (print) Serial.print(" 0x");
+      uint8_t byte = mcp.read();
+      if (print) Serial.print(byte, HEX);
     }
     if (print) Serial.println();
 
