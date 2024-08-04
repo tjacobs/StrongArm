@@ -14,9 +14,9 @@
 #define MOTOR 0x140
 #define NUM_MOTORS 6
 #define motor1 (MOTOR + 1)
-#define motor2 (MOTOR + 4)
-#define motor3 (MOTOR + 2)
-#define motor4 (MOTOR + 3)
+#define motor2 (MOTOR + 2)
+#define motor3 (MOTOR + 3)
+#define motor4 (MOTOR + 4)
 
 // CAN comms
 #define CAN_BAUDRATE (1000000)
@@ -82,13 +82,20 @@ void setup() {
     if (print) Serial.println("Zeroed motors.");
   }
 
-  // Get and set motor IDs
-  if (false) {
-    sendCANCommand(ALL_MOTORS, COMMAND, SET_CAN_FILTER, 0, 0); delay(10);
+  // Plug a single motor in, set the CAN ID you want to set that motor to that CAN ID
+  int id = 0;
+  if (id > 0) {
+    delay(5000);
     sendCANCommand(ALL_MOTORS, GET_SET_ID, GET_ID, 0, 0); delay(1000);
-    sendCANCommand(motor1, GET_SET_ID, SET_ID, 4, 0); delay(10);
-    sendCANCommand(motor1, RESET_MOTOR, 0, 0, 0); delay(10);
-    for (int i = 1; i < MAX_MOTORS; i++) sendCANCommand(MOTOR + i, GET_OUTPUT_ANGLE, 0, 0, 0); delay(10);
+    while (receiveCANPacket()) { };
+    sendCANCommand(ALL_MOTORS, COMMAND, SET_CAN_FILTER, 0, 0); delay(1000);
+    while (receiveCANPacket()) { };
+    sendCANCommand(ALL_MOTORS, GET_SET_ID, SET_ID, id, 0); delay(1000);
+    while (receiveCANPacket()) { };
+    sendCANCommand(ALL_MOTORS, RESET_MOTOR, 0, 0, 0); delay(5000);
+    while (receiveCANPacket()) { };
+    for (int i = 1; i < MAX_MOTORS; i++) { sendCANCommand(MOTOR + i, GET_OUTPUT_ANGLE, 0, 0, 0); delay(100); }
+    while (true) { sendCANCommand(MOTOR + id, GET_OUTPUT_ANGLE, 0, 0, 0); delay(1000); }
   }
 }
 
@@ -245,7 +252,10 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
   // Pack packet
   uint8_t data1 = 0, data2 = 0, data3 = 0, data4 = 0, data5 = 0, data6 = 0, data7 = 0;
   if (command == COMMAND) {
-    if (print) Serial.print("Command: ");
+    if (print) {
+      Serial.print("Command: 0x");
+      Serial.print(param1, HEX);
+    }
     data1 = (uint8_t)(param1);
     data4 = (uint8_t)(param2);
     data5 = (uint8_t)(param2 >> 8);
@@ -311,9 +321,10 @@ void sendCANCommand(int id, uint8_t command, int param1, int param2, int param3)
       Serial.print(" 0x");
       Serial.print(data6, HEX);
       Serial.print(" 0x");
-      Serial.println(data7, HEX);
+      Serial.print(data7, HEX);
     }
   }
+  if (print) Serial.println("");
 
   // Send packet
   mcp.beginPacket(id);
@@ -429,7 +440,7 @@ bool receiveCANPacket() {
           Serial.print(" id: ");
           Serial.print(id);
           Serial.print(", ");
-          Serial.println(angle);
+          Serial.print(angle);
         }
 
         // Save to angles array
