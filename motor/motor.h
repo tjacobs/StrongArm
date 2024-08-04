@@ -32,7 +32,7 @@
 
 // IDs for v3 MyActuator motors
 #define MOTOR_REPLY 0x240
-#define ALL_MOTORS 0x280
+#define ALL_MOTORS 0x300
 #define MAX_MOTORS 32
 
 // Commands for X4-24 Bionic motor commands
